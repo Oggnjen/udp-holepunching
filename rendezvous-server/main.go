@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"time"
 
 	"github.com/Oggnjen/udp-holepunching/rendezvous-server/types"
 	"github.com/google/uuid"
@@ -89,10 +88,9 @@ func udp() {
 
 		fmt.Printf("Received %d bytes from %s: %s\n", n, remoteAddr.String(), data)
 
-		response := "Message received at " + time.Now().Format(time.RFC3339) + "\n"
 		identifier := uuid.New().String()
 		clients[identifier] = types.IPAddressPair{
-			Private: response,
+			Private: "",
 			Public:  remoteAddr.String(),
 		}
 		_, err = conn.WriteTo([]byte(identifier), remoteAddr)

@@ -24,13 +24,14 @@ var conn net.PacketConn
 
 var myIdentifier string
 
+var peerIpAddres types.IPAddressPair
+
 func main() {
 	findServerPort()
 	go udp()
 
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Simple Shell")
-	fmt.Println("---------------------")
+
 	currentOption := "0"
 	for {
 		if currentOption == "0" {
@@ -45,8 +46,14 @@ func main() {
 		}
 
 		if strings.Compare(currentOption, "1") == 0 {
-			fmt.Println("USAO")
 			register()
+			currentOption = "0"
+		}
+
+		if strings.Compare(currentOption, "2") == 0 {
+			text, _ := reader.ReadString('\n')
+			clientIdentifier := strings.TrimSpace(text)
+			getClientData(clientIdentifier)
 			currentOption = "0"
 		}
 
@@ -55,7 +62,6 @@ func main() {
 }
 
 func register() {
-	fmt.Println(serverPort)
 	udpAddr, err := net.ResolveUDPAddr("udp", "127.0.0.1:"+string(serverPort))
 	if err != nil {
 		panic(err)
@@ -99,6 +105,33 @@ func register() {
 	}
 }
 
+func getClientData(clientId string) {
+	response, err := http.Get("http://localhost:8088/get-client?identifier=" + clientId)
+	if err != nil {
+		fmt.Printf("Error making GET request: %s\n", err)
+		os.Exit(1)
+	}
+	// It is crucial to close the response body to prevent resource leaks
+	defer response.Body.Close()
+
+	// Read the response body
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		fmt.Printf("Error reading response body: %s\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Printf("Status Code: %d\n", response.StatusCode)
+	fmt.Printf("Response Body: %s\n", string(body))
+
+	var peerResponse types.IPAddressPair
+	if err := json.Unmarshal(body, &peerResponse); err != nil {
+		fmt.Println("Error unmarshalling JSON:", err)
+		return
+	}
+	peerIpAddres = peerResponse
+}
+
 func findServerPort() {
 	response, err := http.Get("http://localhost:8088/get-udp-port")
 	if err != nil {
@@ -125,13 +158,6 @@ func findServerPort() {
 	}
 	fmt.Println(strconv.Itoa(resPort.Port))
 	serverPort = strconv.Itoa(resPort.Port)
-}
-
-func interfaceToStringBytes(data interface{}) ([]byte, bool) {
-	if str, ok := data.(string); ok {
-		return []byte(str), true
-	}
-	return nil, false
 }
 
 func udp() {
