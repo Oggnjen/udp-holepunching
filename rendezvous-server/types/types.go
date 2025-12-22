@@ -16,3 +16,8 @@ type Identifier struct {
 type PortResponse struct {
 	Port int `json:"port"`
 }
+
+type Message struct {
+	Type    string `json:"type"`
+	Payload string `json:"payload"`
+}
