@@ -73,7 +73,9 @@ func (c *Client) StartUdp() {
 			}
 		}
 		if message.Type != "TEXT" {
-			c.Message <- message
+			if message.Type != "HEART-BEAT" {
+				c.Message <- message
+			}
 		} else {
 			fmt.Println(message.Payload)
 		}
@@ -103,6 +105,8 @@ func (c *Client) StartChatting() {
 	interval := 3 * time.Second
 	ticker := time.NewTicker(interval)
 
+	defer ticker.Stop()
+
 	// punch a hole
 	for {
 		select {
@@ -110,6 +114,7 @@ func (c *Client) StartChatting() {
 			if mess.Type == "SUCCESS" {
 				c.PeerContactSuccess = true
 				fmt.Println("Successfull contact!")
+				go c.startHeartBeat()
 				return
 			}
 		case t := <-ticker.C:
@@ -131,6 +136,40 @@ func (c *Client) StartChatting() {
 				return
 			}
 			fmt.Println("Next trying next hole punching at:", t.Add(interval))
+		}
+	}
+}
+
+func (c *Client) startHeartBeat() {
+	interval := 3 * time.Second
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Resolve once
+	remoteAddr, err := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
+	if err != nil {
+		fmt.Printf("Failed to resolve peer address %q: %v\n", c.PeerAddress.Public, err)
+		return
+	}
+	for {
+		select {
+
+		case <-ticker.C:
+			mess := types.Message{
+				Type:    "HEART-BEAT",
+				Payload: "...",
+			}
+			message, err := json.Marshal(mess)
+			if err != nil {
+				fmt.Printf("Failed to marshal heartbeat: %v\n", err)
+				return
+			}
+
+			_, err = c.Conn.WriteTo(message, remoteAddr)
+			if err != nil {
+				fmt.Printf("Error sending heartbeat: %v\n", err)
+				return
+			}
 		}
 	}
 }
