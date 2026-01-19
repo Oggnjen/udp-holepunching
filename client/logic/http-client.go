@@ -12,7 +12,7 @@ import (
 )
 
 func (c *Client) FindServerPort() {
-	response, err := http.Get("http://localhost:8088/get-udp-port")
+	response, err := http.Get("http://157.90.241.190:8088/get-udp-port")
 	if err != nil {
 		fmt.Printf("Error making GET request: %s\n", err)
 		os.Exit(1)
@@ -35,7 +35,7 @@ func (c *Client) FindServerPort() {
 }
 
 func (c *Client) GetClientData(clientId string) {
-	response, err := http.Get("http://localhost:8088/get-client?identifier=" + clientId)
+	response, err := http.Get("http://157.90.241.190:8088/get-client?identifier=" + clientId)
 	if err != nil {
 		fmt.Printf("Error making GET request: %s\n", err)
 		os.Exit(1)

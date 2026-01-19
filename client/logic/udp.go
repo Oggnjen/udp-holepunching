@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/Oggnjen/udp-holepunching/client/types"
@@ -83,17 +82,9 @@ func (c *Client) StartUdp() {
 }
 
 func (c *Client) Register() {
-	mess := types.IPAddressPort{
-		AddressPort: "127.0.0.1: " + strconv.Itoa(c.Port),
-	}
-	message, err := json.Marshal(mess)
-	if err != nil {
-		fmt.Printf("Invalid message")
-		return
-	}
-	remoteAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:"+string(c.ServerUdpPort))
+	remoteAddr, _ := net.ResolveUDPAddr("udp", "157.90.241.190:"+string(c.ServerUdpPort))
 
-	_, err = c.Conn.WriteTo(message, remoteAddr)
+	_, err := c.Conn.WriteTo([]byte("register"), remoteAddr)
 
 	if err != nil {
 		fmt.Printf("Error sending message: %v\n", err)
@@ -102,7 +93,7 @@ func (c *Client) Register() {
 }
 
 func (c *Client) StartChatting() {
-	interval := 3 * time.Second
+	interval := 3 * time.Millisecond
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
@@ -127,7 +118,12 @@ func (c *Client) StartChatting() {
 				fmt.Printf("Invalid message")
 				return
 			}
-			remoteAddr, _ := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
+			remoteAddr, err := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
+
+			if err != nil {
+				log.Printf("Invalid peer address %q: %v", c.PeerAddress.Public, err)
+				return
+			}
 
 			_, err = c.Conn.WriteTo(message, remoteAddr)
 
@@ -136,6 +132,8 @@ func (c *Client) StartChatting() {
 				return
 			}
 			fmt.Println("Next trying next hole punching at:", t.Add(interval))
+			fmt.Println("Will send request at: ", c.PeerAddress.Public)
+			fmt.Println("====================================================")
 		}
 	}
 }
@@ -184,7 +182,12 @@ func (c *Client) SendMessage(payload string) {
 		fmt.Printf("Invalid message")
 		return
 	}
-	remoteAddr, _ := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
+	remoteAddr, err := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
+
+	if err != nil {
+		log.Printf("Invalid peer address: %v", err)
+		return
+	}
 
 	_, err = c.Conn.WriteTo(message, remoteAddr)
 
