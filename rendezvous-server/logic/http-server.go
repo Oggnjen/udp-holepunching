@@ -10,7 +10,7 @@ import (
 
 func (s *Server) StartHttpServer() {
 	http.HandleFunc("/get-udp-port", s.getUdpPortHandler)
-	http.HandleFunc("/get-client", s.getClientHandler)
+	http.HandleFunc("/start-communication", s.getClientHandler)
 
 	if err := http.ListenAndServe("0.0.0.0:8088", nil); err != nil {
 		log.Fatal(err)
@@ -31,12 +31,19 @@ func (s *Server) getUdpPortHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) getClientHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "GET" {
+	if r.Method == "POST" {
+		defer r.Body.Close()
 		w.Header().Set("Content-Type", "application/json")
 
-		clientIdentifier := r.URL.Query().Get("identifier")
+		var startCommunication types.StartCommunication
 
-		clientAddr, ok := s.Clients[clientIdentifier]
+		err := json.NewDecoder(r.Body).Decode(&startCommunication)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		clientAddr, ok := s.Clients[startCommunication.Peer]
 		if !ok {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -44,6 +51,8 @@ func (s *Server) getClientHandler(w http.ResponseWriter, r *http.Request) {
 
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(clientAddr)
+
+		// s.Conn.WriteToUDPAddrPort()
 
 	}
 }

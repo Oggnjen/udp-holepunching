@@ -21,3 +21,8 @@ type Message struct {
 	Type    string `json:"type"`
 	Payload string `json:"payload"`
 }
+
+type StartCommunication struct {
+	PeerInitiator string `json:"peerInitiator"`
+	Peer          string `json:"peer"`
+}

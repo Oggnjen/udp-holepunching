@@ -12,9 +12,9 @@ import (
 
 func (s *Server) StartUdp() {
 
-	conn, err := net.ListenPacket("udp", ":0")
+	conn, err := net.ListenUDP("udp", &net.UDPAddr{Port: 0})
 	if err != nil {
-		log.Fatal(err)
+		panic("Cannot open UDP port")
 	}
 	defer conn.Close()
 

@@ -1,9 +1,13 @@
 package logic
 
-import "github.com/Oggnjen/udp-holepunching/rendezvous-server/types"
+import (
+	"net"
+
+	"github.com/Oggnjen/udp-holepunching/rendezvous-server/types"
+)
 
 type Server struct {
 	Clients map[string]types.IPAddressPair
-
-	Port int
+	Conn    *net.UDPConn
+	Port    int
 }

@@ -93,7 +93,7 @@ func (c *Client) Register() {
 }
 
 func (c *Client) StartChatting() {
-	interval := 3 * time.Millisecond
+	interval := 3 * time.Second
 	ticker := time.NewTicker(interval)
 
 	defer ticker.Stop()
@@ -132,7 +132,7 @@ func (c *Client) StartChatting() {
 				return
 			}
 			fmt.Println("Next trying next hole punching at:", t.Add(interval))
-			fmt.Println("Will send request at: ", c.PeerAddress.Public)
+			fmt.Println("Will send request at: ", remoteAddr)
 			fmt.Println("====================================================")
 		}
 	}
