@@ -26,7 +26,7 @@ func (s *Server) StartUdp() {
 	fmt.Printf("Assigned port: %d\n", udpAddr.Port)
 	s.Port = udpAddr.Port
 	buffer := make([]byte, 1024)
-
+	s.Conn = conn
 	for {
 		n, remoteAddr, err := conn.ReadFrom(buffer)
 
@@ -35,26 +35,38 @@ func (s *Server) StartUdp() {
 			continue
 		}
 
-		data := string(buffer[:n])
+		data := buffer[:n]
+		var message types.Message
+		err = json.Unmarshal(data, &message)
 
-		fmt.Printf("Received %d bytes from %s: %s\n", n, remoteAddr.String(), data)
-
-		identifier := uuid.New().String()
-		s.Clients[identifier] = types.IPAddressPair{
-			Private: "",
-			Public:  remoteAddr.String(),
-		}
-
-		message := types.Message{
-			Type:    "REGISTRATION",
-			Payload: identifier,
-		}
-		response, err := json.Marshal(message)
 		if err != nil {
-			fmt.Printf("Error occured during sending response to client: %v\n", err)
+			fmt.Printf("Error occured during reading from UDP %v\n", err)
 			continue
 		}
-		_, err = conn.WriteTo(response, remoteAddr)
+
+		fmt.Printf("Received %d bytes from %s: %s\n", n, remoteAddr.String(), data)
+		if message.Type == "REGISTRATION" {
+			s.registerNewClient(remoteAddr)
+
+		}
+	}
+}
+
+func (s *Server) registerNewClient(remoteAddr net.Addr) {
+	identifier := uuid.New().String()
+	s.Clients[identifier] = types.IPAddressPair{
+		Public: remoteAddr.String(),
+	}
+
+	messageToSend := types.Message{
+		Type:    "REGISTRATION",
+		Payload: identifier,
+	}
+	response, err := json.Marshal(messageToSend)
+	if err != nil {
+		fmt.Printf("Error occured during sending response to client: %v\n", err)
+	} else {
+		_, err = s.Conn.WriteTo(response, remoteAddr)
 
 		if err != nil {
 			fmt.Printf("Error occured during sending response to client: %v\n", err)

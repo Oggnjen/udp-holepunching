@@ -44,31 +44,30 @@ func (c *Client) StartUdp() {
 			fmt.Println("Your identifier is: " + c.Identifier)
 		}
 
-		if !c.ContactSuccess {
-			var message types.Message
-			err := json.Unmarshal(data, &message)
+		if message.Type == "INITIATE_CHAT" {
+			fmt.Println(message)
+			c.PeerAddress = types.IPAddressPair{
+				Public: message.Payload,
+			}
+			c.CallInitiated = true
+			go c.StartChatting()
+		} else if message.Type == "HELLO" {
+			c.ContactSuccess = true
+			response := types.Message{
+				Type:    "SUCCESS",
+				Payload: "...",
+			}
+
+			res, err := json.Marshal(response)
 			if err != nil {
-				fmt.Println("Error occured during unmarshaling request data", err)
+				fmt.Printf("Error occured during sending response to client: %v\n", err)
 				continue
 			}
-			if message.Type == "HELLO" {
-				c.ContactSuccess = true
-				response := types.Message{
-					Type:    "SUCCESS",
-					Payload: "...",
-				}
 
-				res, err := json.Marshal(response)
-				if err != nil {
-					fmt.Printf("Error occured during sending response to client: %v\n", err)
-					continue
-				}
+			_, err = c.Conn.WriteTo(res, remoteAddr)
 
-				_, err = c.Conn.WriteTo(res, remoteAddr)
-
-				if err != nil {
-					fmt.Printf("Error occured during sending response to client: %v\n", err)
-				}
+			if err != nil {
+				fmt.Printf("Error occured during sending response to client: %v\n", err)
 			}
 		}
 		if message.Type != "TEXT" {
@@ -76,20 +75,29 @@ func (c *Client) StartUdp() {
 				c.Message <- message
 			}
 		} else {
-			fmt.Println(message.Payload)
+			fmt.Println("Message: " + message.Payload)
 		}
 	}
 }
 
 func (c *Client) Register() {
-	remoteAddr, _ := net.ResolveUDPAddr("udp", "157.90.241.190:"+string(c.ServerUdpPort))
-
-	_, err := c.Conn.WriteTo([]byte("register"), remoteAddr)
+	remoteAddr, _ := net.ResolveUDPAddr("udp", c.ServerUrl+":"+string(c.ServerUdpPort))
+	messageToSend := types.Message{
+		Type:    "REGISTRATION",
+		Payload: "",
+	}
+	request, err := json.Marshal(messageToSend)
+	if err != nil {
+		fmt.Printf("Error occured during sending response to client: %v\n", err)
+	}
+	_, err = c.Conn.WriteTo(request, remoteAddr)
 
 	if err != nil {
 		fmt.Printf("Error sending message: %v\n", err)
 		return
 	}
+
+	go c.startHeartBeatWithServer()
 }
 
 func (c *Client) StartChatting() {
@@ -105,6 +113,9 @@ func (c *Client) StartChatting() {
 			if mess.Type == "SUCCESS" {
 				c.PeerContactSuccess = true
 				fmt.Println("Successfull contact!")
+				if c.CallInitiated {
+					fmt.Println("Press any key to start chatting!")
+				}
 				go c.startHeartBeat()
 				return
 			}
@@ -118,6 +129,8 @@ func (c *Client) StartChatting() {
 				fmt.Printf("Invalid message")
 				return
 			}
+
+			fmt.Println("SENDING ON: " + c.PeerAddress.Public)
 			remoteAddr, err := net.ResolveUDPAddr("udp", c.PeerAddress.Public)
 
 			if err != nil {
@@ -194,5 +207,39 @@ func (c *Client) SendMessage(payload string) {
 	if err != nil {
 		fmt.Printf("Error sending message: %v\n", err)
 		return
+	}
+}
+
+func (c *Client) startHeartBeatWithServer() {
+	interval := 3 * time.Second
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	// Resolve once
+	remoteAddr, err := net.ResolveUDPAddr("udp", c.ServerUrl+":"+c.ServerUdpPort)
+	if err != nil {
+		fmt.Printf("Failed to resolve peer address %q: %v\n", c.PeerAddress.Public, err)
+		return
+	}
+	for c.PeerAddress.Public == "" {
+		select {
+
+		case <-ticker.C:
+			mess := types.Message{
+				Type:    "HEART-BEAT",
+				Payload: "...",
+			}
+			message, err := json.Marshal(mess)
+			if err != nil {
+				fmt.Printf("Failed to marshal heartbeat: %v\n", err)
+				return
+			}
+
+			_, err = c.Conn.WriteTo(message, remoteAddr)
+			if err != nil {
+				fmt.Printf("Error sending heartbeat: %v\n", err)
+				return
+			}
+		}
 	}
 }

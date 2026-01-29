@@ -27,4 +27,6 @@ type Client struct {
 	ServerUdpPort      string
 	ContactSuccess     bool
 	PeerContactSuccess bool
+	ServerUrl          string
+	CallInitiated      bool
 }

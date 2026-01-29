@@ -1,8 +1,7 @@
 package types
 
 type IPAddressPair struct {
-	Private string `json:"private"`
-	Public  string `json:"public"`
+	Public string `json:"public"`
 }
 
 type IPAddressPort struct {
@@ -20,4 +19,9 @@ type PortResponse struct {
 type Message struct {
 	Type    string `json:"type"`
 	Payload string `json:"payload"`
+}
+
+type StartCommunication struct {
+	PeerInitiator string `json:"peerInitiator"`
+	Peer          string `json:"peer"`
 }

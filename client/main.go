@@ -3,15 +3,22 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"log"
 	"net"
 	"os"
 	"strings"
 
 	"github.com/Oggnjen/udp-holepunching/client/logic"
 	"github.com/Oggnjen/udp-holepunching/client/types"
+	"github.com/joho/godotenv"
 )
 
 func main() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
+
 	client := NewClient()
 	client.FindServerPort()
 	go client.StartUdp()
@@ -20,7 +27,7 @@ func main() {
 
 	currentOption := "0"
 	for {
-		if client.Identifier != "" && currentOption != "C" {
+		if client.Identifier != "" && currentOption != "C" && client.PeerAddress.Public == "" {
 			fmt.Printf("Your identifier is: %s\n", client.Identifier)
 			fmt.Println("Send your identifier to someone you want to chat with!")
 		}
@@ -46,7 +53,7 @@ func main() {
 			fmt.Print("insert client identifier -> ")
 			text, _ := reader.ReadString('\n')
 			clientIdentifier := strings.TrimSpace(text)
-			client.GetClientData(clientIdentifier)
+			client.StartCommunication(clientIdentifier)
 			fmt.Println("Starting chatting session...")
 			client.StartChatting()
 			currentOption = "C"
@@ -58,7 +65,7 @@ func main() {
 			currentOption = "0"
 		}
 
-		if strings.Compare(currentOption, "C") == 0 && client.PeerContactSuccess {
+		if strings.Compare(currentOption, "C") == 0 || client.PeerContactSuccess {
 			text, _ := reader.ReadString('\n')
 			client.SendMessage(text)
 		}
@@ -68,6 +75,13 @@ func main() {
 }
 
 func NewClient() *logic.Client {
+	serverUrl := os.Getenv("SERVER_URL")
+	if serverUrl == "" {
+		fmt.Println("SERVER_URL not set, using default: localhost")
+		serverUrl = "localhost"
+	} else {
+		fmt.Println("SERVER_URL:", serverUrl)
+	}
 	connTemp, err := net.ListenUDP("udp", &net.UDPAddr{Port: 0})
 	if err != nil {
 		panic("Cannot open UDP port")
@@ -76,5 +90,6 @@ func NewClient() *logic.Client {
 		Conn:           connTemp,
 		Message:        make(chan types.Message, 10),
 		ContactSuccess: false,
+		ServerUrl:      serverUrl,
 	}
 }

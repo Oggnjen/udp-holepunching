@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,7 +13,8 @@ import (
 )
 
 func (c *Client) FindServerPort() {
-	response, err := http.Get("http://157.90.241.190:8088/get-udp-port")
+
+	response, err := http.Get("http://" + c.ServerUrl + ":8088/get-udp-port")
 	if err != nil {
 		fmt.Printf("Error making GET request: %s\n", err)
 		os.Exit(1)
@@ -34,8 +36,20 @@ func (c *Client) FindServerPort() {
 	// ServerPort = strconv.Itoa(resPort.Port)
 }
 
-func (c *Client) GetClientData(clientId string) {
-	response, err := http.Get("http://157.90.241.190:8088/get-client?identifier=" + clientId)
+func (c *Client) StartCommunication(clientId string) {
+	startCommunication := types.StartCommunication{
+		PeerInitiator: c.Identifier,
+		Peer:          clientId,
+	}
+
+	message, err := json.Marshal(startCommunication)
+
+	if err != nil {
+		fmt.Errorf("Error occured during starting chatting")
+		return
+	}
+
+	response, err := http.Post("http://"+c.ServerUrl+":8088/start-communication", "application/json", bytes.NewBuffer(message))
 	if err != nil {
 		fmt.Printf("Error making GET request: %s\n", err)
 		os.Exit(1)
