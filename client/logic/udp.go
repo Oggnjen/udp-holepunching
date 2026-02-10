@@ -49,7 +49,7 @@ func (c *Client) StartUdp() {
 			c.PeerAddress = types.IPAddressPair{
 				Public: message.Payload,
 			}
-			c.CallInitiated = true
+			c.ChatInitiated = true
 			go c.StartChatting()
 		} else if message.Type == "HELLO" {
 			c.ContactSuccess = true
@@ -113,7 +113,7 @@ func (c *Client) StartChatting() {
 			if mess.Type == "SUCCESS" {
 				c.PeerContactSuccess = true
 				fmt.Println("Successfull contact!")
-				if c.CallInitiated {
+				if c.ChatInitiated {
 					fmt.Println("Press any key to start chatting!")
 				}
 				go c.startHeartBeat()

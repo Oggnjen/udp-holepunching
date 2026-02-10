@@ -28,5 +28,5 @@ type Client struct {
 	ContactSuccess     bool
 	PeerContactSuccess bool
 	ServerUrl          string
-	CallInitiated      bool
+	ChatInitiated      bool
 }
