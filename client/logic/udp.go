@@ -70,11 +70,10 @@ func (c *Client) StartUdp() {
 				fmt.Printf("Error occured during sending response to client: %v\n", err)
 			}
 		}
-		if message.Type != "TEXT" {
-			if message.Type != "HEART-BEAT" {
-				c.Message <- message
-			}
-		} else {
+		if message.Type == "SUCCESS" {
+			c.Message <- message
+		}
+		if message.Type == "TEXT" {
 			fmt.Println("Message: " + message.Payload)
 		}
 	}
